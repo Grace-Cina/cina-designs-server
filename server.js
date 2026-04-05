@@ -4,6 +4,11 @@ const path = require("path");
 
 const app = express();
 
+app.use((req, res, next) => {
+  console.log("REQUEST:", req.method, req.url);
+  next();
+});
+
 app.use(cors());
 app.use(express.static(path.join(__dirname, "public")));
 app.use("/images", express.static(path.join(__dirname, "images")));
@@ -27,7 +32,7 @@ const products = [
     material: "Fabric",
     occasion: "Seasonal",
     description: "A personalized wreath sash that adds charm to your front door décor.",
-    image: "/images/wreath-sash.jpg"
+    image: "/images/zoomed-in-wreath-sash.jpg"
   },
   {
     _id: 3,
@@ -37,7 +42,7 @@ const products = [
     material: "Wood",
     occasion: "Baby Milestones",
     description: "A themed monthly milestone set to capture each month of baby’s first year.",
-    image: "/images/monthly-milestones.jpg"
+    image: "/images/starwars-milestone.jpg"
   },
   {
     _id: 4,
@@ -57,7 +62,7 @@ const products = [
     material: "Wood",
     occasion: "Baby Shower",
     description: "A custom wooden sign that adds a warm and personal touch to any nursery.",
-    image: "/images/nursery-sign.jpg"
+    image: "/images/wooden-nursery-sign.jpg"
   },
   {
     _id: 6,
@@ -77,7 +82,7 @@ const products = [
     material: "Wood",
     occasion: "Wedding Gift",
     description: "A personalized cutting board that is both practical and beautiful for any kitchen.",
-    image: "/images/cutting-board.jpg"
+    image: "/images/cutting-boards.jpg"
   },
   {
     _id: 8,
@@ -87,11 +92,13 @@ const products = [
     material: "Wood and vinyl",
     occasion: "Back to School",
     description: "A milestone board made to celebrate and remember each first day of school.",
-    image: "/images/milestone-board.jpg"
+    image: "/images/first-day.jpg"
   }
 ];
 
-
+app.get("/test", (req, res) => {
+  res.send("SERVER IS WORKING");
+});
 
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "views", "index.html"));
@@ -110,6 +117,10 @@ app.get("/api/products/:id", (req, res) => {
   }
 
   res.json(product);
+});
+
+app.use((req, res) => {
+  res.status(404).send(`Custom 404 from Grace's server: ${req.url}`);
 });
 
 const PORT = process.env.PORT || 3001;
