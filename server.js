@@ -1,18 +1,23 @@
 const express = require("express");
 const cors = require("cors");
 const path = require("path");
+const Joi = require("joi");
 
 const app = express();
+
+// 🔹 MIDDLEWARE
+app.use(cors());
+app.use(express.json()); // ✅ REQUIRED FOR POST
 
 app.use((req, res, next) => {
   console.log("REQUEST:", req.method, req.url);
   next();
 });
 
-app.use(cors());
 app.use(express.static(path.join(__dirname, "public")));
 app.use("/images", express.static(path.join(__dirname, "images")));
 
+// 🔹 DATA
 const products = [
   {
     _id: 1,
@@ -96,18 +101,35 @@ const products = [
   }
 ];
 
+// 🔹 JOI VALIDATION SCHEMA
+const productSchema = Joi.object({
+  name: Joi.string().min(3).required(),
+  price: Joi.string().required(),
+  category: Joi.string().allow(""),
+  material: Joi.string().allow(""),
+  occasion: Joi.string().allow(""),
+  description: Joi.string().min(5).required(),
+  image: Joi.string().allow("")
+});
+
+// 🔹 ROUTES
+
+// test route
 app.get("/test", (req, res) => {
   res.send("SERVER IS WORKING");
 });
 
+// homepage
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "views", "index.html"));
 });
 
+// GET all products
 app.get("/api/products", (req, res) => {
   res.json(products);
 });
 
+// GET one product
 app.get("/api/products/:id", (req, res) => {
   const id = parseInt(req.params.id);
   const product = products.find((item) => item._id === id);
@@ -119,10 +141,30 @@ app.get("/api/products/:id", (req, res) => {
   res.json(product);
 });
 
+// 🔥 POST NEW PRODUCT (THIS IS THE BIG ONE)
+app.post("/api/products", (req, res) => {
+  const { error } = productSchema.validate(req.body);
+
+  if (error) {
+    return res.status(400).json({ error: error.details[0].message });
+  }
+
+  const newProduct = {
+    _id: products.length + 1,
+    ...req.body
+  };
+
+  products.push(newProduct);
+
+  res.json(newProduct);
+});
+
+// 🔹 404
 app.use((req, res) => {
   res.status(404).send(`Custom 404 from Grace's server: ${req.url}`);
 });
 
+// 🔹 SERVER START
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
