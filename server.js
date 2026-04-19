@@ -7,15 +7,13 @@ const app = express();
 
 // 🔹 MIDDLEWARE
 app.use(cors());
-app.use(express.json()); // ✅ REQUIRED FOR POST
+app.use(express.json());
+app.use(express.urlencoded({ extended: true })); // ✅ REQUIRED FIX
 
 app.use((req, res, next) => {
   console.log("REQUEST:", req.method, req.url);
   next();
 });
-
-app.use(express.static(path.join(__dirname, "public")));
-app.use("/images", express.static(path.join(__dirname, "images")));
 
 // 🔹 DATA
 const products = [
@@ -101,7 +99,7 @@ const products = [
   }
 ];
 
-// 🔹 JOI VALIDATION SCHEMA
+// 🔹 JOI VALIDATION
 const productSchema = Joi.object({
   name: Joi.string().min(3).required(),
   price: Joi.string().required(),
@@ -141,8 +139,10 @@ app.get("/api/products/:id", (req, res) => {
   res.json(product);
 });
 
-// 🔥 POST NEW PRODUCT (THIS IS THE BIG ONE)
+// 🔥 POST NEW PRODUCT
 app.post("/api/products", (req, res) => {
+  console.log("BODY:", req.body); // debug
+
   const { error } = productSchema.validate(req.body);
 
   if (error) {
@@ -156,10 +156,14 @@ app.post("/api/products", (req, res) => {
 
   products.push(newProduct);
 
-  res.json(newProduct);
+  res.status(200).json(newProduct);
 });
 
-// 🔹 404
+// 🔹 STATIC (✅ MUST BE AFTER ROUTES)
+app.use(express.static(path.join(__dirname, "public")));
+app.use("/images", express.static(path.join(__dirname, "images")));
+
+// 🔹 404 LAST
 app.use((req, res) => {
   res.status(404).send(`Custom 404 from Grace's server: ${req.url}`);
 });
