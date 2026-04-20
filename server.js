@@ -8,7 +8,7 @@ const app = express();
 // 🔹 MIDDLEWARE
 app.use(cors());
 app.use(express.json());
-app.use(express.urlencoded({ extended: true })); // ✅ REQUIRED FIX
+app.use(express.urlencoded({ extended: true }));
 
 app.use((req, res, next) => {
   console.log("REQUEST:", req.method, req.url);
@@ -99,10 +99,16 @@ const products = [
   }
 ];
 
-// 🔹 JOI VALIDATION
+// 🔹 JOI VALIDATION (✅ FIXED)
 const productSchema = Joi.object({
   name: Joi.string().min(3).required(),
-  price: Joi.string().required(),
+
+  // 🔥 FIX: accept BOTH string and number
+  price: Joi.alternatives().try(
+    Joi.string(),
+    Joi.number()
+  ).required(),
+
   category: Joi.string().allow(""),
   material: Joi.string().allow(""),
   occasion: Joi.string().allow(""),
@@ -117,6 +123,7 @@ app.get("/test", (req, res) => {
   res.send("SERVER IS WORKING");
 });
 
+// 🔹 UPDATE PRODUCT (PUT)
 app.put("/api/products/:id", (req, res) => {
   const id = parseInt(req.params.id);
 
@@ -129,10 +136,10 @@ app.put("/api/products/:id", (req, res) => {
   const { error } = productSchema.validate(req.body);
 
   if (error) {
+    console.log("VALIDATION ERROR:", error.details[0].message); // 👈 DEBUG
     return res.status(400).json({ error: error.details[0].message });
   }
 
-  // update product
   products[productIndex] = {
     ...products[productIndex],
     ...req.body
@@ -141,7 +148,7 @@ app.put("/api/products/:id", (req, res) => {
   res.status(200).json(products[productIndex]);
 });
 
-
+// 🔹 DELETE PRODUCT
 app.delete("/api/products/:id", (req, res) => {
   const id = parseInt(req.params.id);
 
@@ -156,17 +163,12 @@ app.delete("/api/products/:id", (req, res) => {
   res.status(200).json(deleted[0]);
 });
 
-// homepage
-app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "views", "index.html"));
-});
-
-// GET all products
+// 🔹 GET ALL PRODUCTS
 app.get("/api/products", (req, res) => {
   res.json(products);
 });
 
-// GET one product
+// 🔹 GET SINGLE PRODUCT
 app.get("/api/products/:id", (req, res) => {
   const id = parseInt(req.params.id);
   const product = products.find((item) => item._id === id);
@@ -178,13 +180,12 @@ app.get("/api/products/:id", (req, res) => {
   res.json(product);
 });
 
-// 🔥 POST NEW PRODUCT
+// 🔹 CREATE PRODUCT
 app.post("/api/products", (req, res) => {
-  console.log("POST HIT"); // 👈 ADD THIS LINE
-
   const { error } = productSchema.validate(req.body);
 
   if (error) {
+    console.log("VALIDATION ERROR:", error.details[0].message);
     return res.status(400).json({ error: error.details[0].message });
   }
 
@@ -198,16 +199,16 @@ app.post("/api/products", (req, res) => {
   res.status(200).json(newProduct);
 });
 
-// 🔹 STATIC (✅ MUST BE AFTER ROUTES)
+// 🔹 STATIC
 app.use(express.static(path.join(__dirname, "public")));
 app.use("/images", express.static(path.join(__dirname, "images")));
 
-// 🔹 404 LAST
+// 🔹 404
 app.use((req, res) => {
-  res.status(404).send(`Custom 404 from Grace's server: ${req.url}`);
+  res.status(404).send(`Custom 404: ${req.url}`);
 });
 
-// 🔹 SERVER START
+// 🔹 SERVER
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
