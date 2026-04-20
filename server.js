@@ -117,6 +117,45 @@ app.get("/test", (req, res) => {
   res.send("SERVER IS WORKING");
 });
 
+app.put("/api/products/:id", (req, res) => {
+  const id = parseInt(req.params.id);
+
+  const productIndex = products.findIndex(p => p._id === id);
+
+  if (productIndex === -1) {
+    return res.status(404).json({ error: "Product not found" });
+  }
+
+  const { error } = productSchema.validate(req.body);
+
+  if (error) {
+    return res.status(400).json({ error: error.details[0].message });
+  }
+
+  // update product
+  products[productIndex] = {
+    ...products[productIndex],
+    ...req.body
+  };
+
+  res.status(200).json(products[productIndex]);
+});
+
+
+app.delete("/api/products/:id", (req, res) => {
+  const id = parseInt(req.params.id);
+
+  const productIndex = products.findIndex(p => p._id === id);
+
+  if (productIndex === -1) {
+    return res.status(404).json({ error: "Product not found" });
+  }
+
+  const deleted = products.splice(productIndex, 1);
+
+  res.status(200).json(deleted[0]);
+});
+
 // homepage
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "views", "index.html"));
