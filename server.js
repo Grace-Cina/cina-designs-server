@@ -141,7 +141,7 @@ app.get("/api/products/:id", (req, res) => {
 
 // 🔥 POST NEW PRODUCT
 app.post("/api/products", (req, res) => {
-  console.log("BODY:", req.body); // debug
+  console.log("POST HIT"); // 👈 ADD THIS LINE
 
   const { error } = productSchema.validate(req.body);
 
