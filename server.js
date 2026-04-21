@@ -99,16 +99,10 @@ const products = [
   }
 ];
 
-// 🔹 JOI VALIDATION (✅ FIXED)
+// 🔹 JOI VALIDATION
 const productSchema = Joi.object({
   name: Joi.string().min(3).required(),
-
-  // 🔥 FIX: accept BOTH string and number
-  price: Joi.alternatives().try(
-    Joi.string(),
-    Joi.number()
-  ).required(),
-
+  price: Joi.alternatives().try(Joi.string(), Joi.number()).required(),
   category: Joi.string().allow(""),
   material: Joi.string().allow(""),
   occasion: Joi.string().allow(""),
@@ -116,94 +110,95 @@ const productSchema = Joi.object({
   image: Joi.string().allow("")
 });
 
-// 🔹 ROUTES
+// 🔹 STATIC (IMPORTANT: must be BEFORE routes that use CSS)
+app.use(express.static(path.join(__dirname, "public")));
+app.use("/images", express.static(path.join(__dirname, "images")));
 
-// test route
-app.get("/test", (req, res) => {
-  res.send("SERVER IS WORKING");
+// 🔹 HOMEPAGE (USES YOUR styles.css)
+app.get("/", (req, res) => {
+  res.send(`
+    <html>
+      <head>
+        <title>Cina Designs API</title>
+        <link rel="stylesheet" href="/styles.css">
+      </head>
+
+      <body>
+        <div class="page">
+          <div class="card">
+            <h1>Cina Designs API</h1>
+
+            <p class="intro">
+              Welcome to the Cina Designs & Events product API.
+            </p>
+
+            <div class="endpoint-block">
+              <h2>Get All Products</h2>
+              <p>View all available products:</p>
+              <a href="/api/products">/api/products</a>
+            </div>
+
+            <div class="endpoint-block">
+              <h2>Get One Product</h2>
+              <p>Example request:</p>
+              <a href="/api/products/1">/api/products/1</a>
+            </div>
+          </div>
+        </div>
+      </body>
+    </html>
+  `);
 });
 
-// 🔹 UPDATE PRODUCT (PUT)
-app.put("/api/products/:id", (req, res) => {
-  const id = parseInt(req.params.id);
-
-  const productIndex = products.findIndex(p => p._id === id);
-
-  if (productIndex === -1) {
-    return res.status(404).json({ error: "Product not found" });
-  }
-
-  const { error } = productSchema.validate(req.body);
-
-  if (error) {
-    console.log("VALIDATION ERROR:", error.details[0].message); // 👈 DEBUG
-    return res.status(400).json({ error: error.details[0].message });
-  }
-
-  products[productIndex] = {
-    ...products[productIndex],
-    ...req.body
-  };
-
-  res.status(200).json(products[productIndex]);
-});
-
-// 🔹 DELETE PRODUCT
-app.delete("/api/products/:id", (req, res) => {
-  const id = parseInt(req.params.id);
-
-  const productIndex = products.findIndex(p => p._id === id);
-
-  if (productIndex === -1) {
-    return res.status(404).json({ error: "Product not found" });
-  }
-
-  const deleted = products.splice(productIndex, 1);
-
-  res.status(200).json(deleted[0]);
-});
-
-// 🔹 GET ALL PRODUCTS
+// 🔹 API ROUTES
 app.get("/api/products", (req, res) => {
   res.json(products);
 });
 
-// 🔹 GET SINGLE PRODUCT
 app.get("/api/products/:id", (req, res) => {
   const id = parseInt(req.params.id);
-  const product = products.find((item) => item._id === id);
-
-  if (!product) {
-    return res.status(404).json({ error: "Product not found" });
-  }
-
+  const product = products.find(p => p._id === id);
+  if (!product) return res.status(404).json({ error: "Product not found" });
   res.json(product);
 });
 
-// 🔹 CREATE PRODUCT
 app.post("/api/products", (req, res) => {
   const { error } = productSchema.validate(req.body);
-
-  if (error) {
-    console.log("VALIDATION ERROR:", error.details[0].message);
-    return res.status(400).json({ error: error.details[0].message });
-  }
+  if (error) return res.status(400).json({ error: error.details[0].message });
 
   const newProduct = {
-    _id: products.length + 1,
+    _id: Date.now(),
     ...req.body
   };
 
   products.push(newProduct);
-
   res.status(200).json(newProduct);
 });
 
-// 🔹 STATIC
-app.use(express.static(path.join(__dirname, "public")));
-app.use("/images", express.static(path.join(__dirname, "images")));
+app.put("/api/products/:id", (req, res) => {
+  const id = parseInt(req.params.id);
+  const index = products.findIndex(p => p._id === id);
 
-// 🔹 404
+  if (index === -1) return res.status(404).json({ error: "Product not found" });
+
+  const { error } = productSchema.validate(req.body);
+  if (error) return res.status(400).json({ error: error.details[0].message });
+
+  products[index] = { ...products[index], ...req.body };
+  res.json(products[index]);
+});
+
+app.delete("/api/products/:id", (req, res) => {
+  const id = parseInt(req.params.id);
+  const index = products.findIndex(p => p._id === id);
+
+  if (index === -1) return res.status(404).json({ error: "Product not found" });
+
+  const deleted = products.splice(index, 1);
+  res.json(deleted[0]);
+});
+
+// 🔹 404 (ALWAYS LAST)
 app.use((req, res) => {
   res.status(404).send(`Custom 404: ${req.url}`);
 });
